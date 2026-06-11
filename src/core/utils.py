@@ -1,7 +1,16 @@
 """
 Lab 11 — Helper Utilities
 """
+import inspect
+
 from google.genai import types
+
+
+async def _maybe_await(value):
+    """Handle ADK methods that may be sync or async across versions."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
 
 async def chat_with_agent(agent, runner, user_message: str, session_id=None):
@@ -22,20 +31,22 @@ async def chat_with_agent(agent, runner, user_message: str, session_id=None):
     session = None
     if session_id is not None:
         try:
-            session = await runner.session_service.get_session(
-                app_name=app_name, user_id=user_id, session_id=session_id
+            session = await _maybe_await(
+                runner.session_service.get_session(
+                    app_name=app_name, user_id=user_id, session_id=session_id
+                )
             )
         except (ValueError, KeyError):
             pass
 
     if session is None:
         try:
-            session = await runner.session_service.create_session(
-                app_name=app_name, user_id=user_id
+            session = await _maybe_await(
+                runner.session_service.create_session(app_name=app_name, user_id=user_id)
             )
         except Exception:
-            session = await runner.session_service.create_session(
-                app_name=app_name, user_id=user_id
+            session = await _maybe_await(
+                runner.session_service.create_session(app_name=app_name, user_id=user_id)
             )
 
     content = types.Content(
